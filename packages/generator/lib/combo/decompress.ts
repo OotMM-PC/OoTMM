@@ -1,6 +1,7 @@
 import type { Game } from '@ootmm/core';
 
-import * as Yaz0 from 'yaz0';
+// The wasm build runs everywhere; the native addon needs node-gyp (broken on Windows).
+import * as Yaz0 from 'yaz0/lib/browser/index.js';
 import CRC32 from 'crc-32';
 import { Monitor, GAMES } from '@ootmm/core';
 

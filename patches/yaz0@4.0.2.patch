@@ -1,0 +1,20 @@
+diff --git a/lib/browser/index.js b/lib/browser/index.js
+index 75b400284e43759cc1ffe1fd6dad01f260484718..20281aa1fbdf2f854a4c89ce582acc633dbd9420 100644
+--- a/lib/browser/index.js
++++ b/lib/browser/index.js
+@@ -5,7 +5,14 @@ let Yaz0 = null;
+ 
+ function getYaz0() {
+   if (!Yaz0) {
+-    Yaz0 = Yaz0Loader();
++    // Node's fetch cannot load the wasm from a file:// URL; hand it the bytes.
++    if (typeof process !== 'undefined' && process.versions?.node) {
++      Yaz0 = import('node:fs/promises')
++        .then((fs) => fs.readFile(new URL('./libyaz0.wasm', import.meta.url)))
++        .then((wasmBinary) => Yaz0Loader({ wasmBinary }));
++    } else {
++      Yaz0 = Yaz0Loader();
++    }
+   }
+   return Yaz0;
+ }

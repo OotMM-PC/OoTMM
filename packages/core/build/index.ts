@@ -64,8 +64,9 @@ const DATA_WORLD = {
 };
 
 const DATA_FILES = {
-  oot: loadTxt('files/files-oot.txt').trim().split('\n'),
-  mm: loadTxt('files/files-mm.txt').trim().split('\n'),
+  // Split on \r?\n so a Windows (CRLF) checkout doesn't leave a trailing \r on every entry (which broke object lookups like "objects/object_link_child").
+  oot: loadTxt('files/files-oot.txt').trim().split(/\r?\n/),
+  mm: loadTxt('files/files-mm.txt').trim().split(/\r?\n/),
 };
 
 const MACROS = {

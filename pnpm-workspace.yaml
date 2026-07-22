@@ -1,6 +1,24 @@
 packages:
   - packages/*
 
+# pnpm 11 reads this from here, not from .npmrc.
+linkWorkspacePackages: true
+
+# Only esbuild may run build scripts: yaz0's node-gyp breaks on Windows and the
+# PC-seed pipeline never needs it (full ROM builds: devcontainer or manual build).
+allowBuilds:
+  '@parcel/watcher': false
+  bufferutil: false
+  es5-ext: false
+  esbuild: true
+  microtime: false
+  netlify-cli: false
+  nx: false
+  sharp: false
+  unix-dgram: false
+  utf-8-validate: false
+  yaz0: false
+
 catalog:
   '@preact/preset-vite': ^2.10.5
   '@tailwindcss/vite': ^4.2.2
@@ -12,15 +30,5 @@ catalog:
   type-fest: ^5.5.0
   yaml: ^2.8.3
 
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - bufferutil
-  - es5-ext
-  - esbuild
-  - microtime
-  - netlify-cli
-  - nx
-  - sharp
-  - unix-dgram
-  - utf-8-validate
-  - yaz0
+patchedDependencies:
+  yaz0@4.0.2: patches/yaz0@4.0.2.patch

@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import path from 'path';
 import { sync as globSync } from 'glob';
 import JSZip from 'jszip';
@@ -33,6 +33,12 @@ async function runCommand(cmd: string, args: string[]) {
 
 export async function buildNative() {
   const cmakeBuildType = isProd ? 'Release' : 'Debug';
+
+  /* Pick up the MIPS toolchain from third_party, so it never has to be on PATH */
+  const toolchainBin = path.resolve(__dirname, '..', '..', '..', 'third_party', 'n64-toolchain', 'bin');
+  if (existsSync(toolchainBin)) {
+    process.env.PATH = toolchainBin + path.delimiter + process.env.PATH;
+  }
 
   /* Resolve paths */
   const installDir = path.resolve(__dirname, '..', 'build');
@@ -94,9 +100,10 @@ async function build() {
   /* Create the zip */
   const zip = new JSZip();
 
-  /* Zip the install tree */
+  /* Zip the install tree. Entry names must use forward slashes; glob returns
+   * native separators on Windows. */
   const files = globSync('**/*', { cwd: installDir, nodir: true });
-  await Promise.all(files.map(async (filename) => zip.file(filename, await fs.readFile(path.join(installDir, filename)))));
+  await Promise.all(files.map(async (filename) => zip.file(filename.replaceAll(path.sep, '/'), await fs.readFile(path.join(installDir, filename)))));
 
   /* Add the extra assets */
   await customAssetsKeep();
@@ -106,7 +113,7 @@ async function build() {
     const matches = globSync(['**/*.bin', '**/*.zobj'], { cwd: basePath });
     for (const filename of matches) {
       const data = await fs.readFile(path.join(basePath, filename));
-      zip.file(filename, data);
+      zip.file(filename.replaceAll(path.sep, '/'), data);
     }
   }
 

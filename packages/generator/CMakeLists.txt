@@ -1,21 +1,35 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(ARCH_CANDIDATES "mips64-ultra-elf" "mips-linux-gnu" "mips64-linux-gnu" "mipsel-linux-gnu" "mips64el-linux-gnu")
+set(ARCH_CANDIDATES "mips64-ultra-elf" "mips64-elf" "mips-linux-gnu" "mips64-linux-gnu" "mipsel-linux-gnu" "mips64el-linux-gnu")
 
-foreach(arch ${ARCH_CANDIDATES})
-  find_program(CMAKE_C_COMPILER "${arch}-gcc")
-  find_program(CMAKE_ASM_COMPILER "${arch}-gcc")
-  if(CMAKE_C_COMPILER AND CMAKE_ASM_COMPILER)
-    set(ARCH "${arch}")
-    message(STATUS "Found compiler for ${ARCH}")
-    break()
+# Bare-metal target: no host-platform link flags, and the compiler sanity
+# check must not link a hosted executable.
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR mips)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+# ARCH must be cached: find_program is a no-op on re-configure, which would
+# mislabel ARCH and point the overlay link at a nonexistent "${ARCH}-ld".
+set(ARCH "" CACHE STRING "MIPS toolchain prefix (auto-detected)")
+if(NOT ARCH)
+  foreach(arch ${ARCH_CANDIDATES})
+    find_program(CMAKE_C_COMPILER "${arch}-gcc")
+    find_program(CMAKE_ASM_COMPILER "${arch}-gcc")
+    if(CMAKE_C_COMPILER AND CMAKE_ASM_COMPILER)
+      set(ARCH "${arch}" CACHE STRING "MIPS toolchain prefix (auto-detected)" FORCE)
+      message(STATUS "Found compiler for ${ARCH}")
+      break()
+    endif()
+  endforeach()
+  if(NOT ARCH)
+    message(FATAL_ERROR "No MIPS compiler found. On Windows, download gcc-toolchain-mips64-win64.zip from libdragon and extract it into third_party/n64-toolchain (see the OoTMM PC section of the README).")
   endif()
-endforeach()
+endif()
 
 project(OoTMM C ASM)
 
 set(FLAGS "-EB -static -fomit-frame-pointer -ffreestanding -nostdlib -nostdinc -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -mfix4300 -mfix-r4000 -G 0 -Os -Wall -Werror=implicit-function-declaration -Werror=implicit-int -Wimplicit-fallthrough -Wl,--build-id=none")
-set(CMAKE_C_FLAGS "${FLAGS} -D_LANGUAGE_C=1")
+set(CMAKE_C_FLAGS "${FLAGS} -std=gnu23 -D_LANGUAGE_C=1")
 set(CMAKE_ASM_FLAGS "${FLAGS}")
 
 # Override default envs

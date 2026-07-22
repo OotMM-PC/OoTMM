@@ -2,7 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#ifdef _WIN32
+/* MSVC has no <elf.h>; this vendors the ELF32 subset zovl uses. */
+#include "elf_compat.h"
+#else
 #include <elf.h>
+#endif
 
 #define SE_TEXT     0
 #define SE_DATA     1

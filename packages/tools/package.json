@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "cmake -B build && cmake --build build && cmake --install build --prefix bin"
+    "build": "cmake -B build && cmake --build build --config Release && cmake --install build --prefix bin --config Release"
   },
   "author": "Nax",
   "license": "MIT",

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import * as Yaz0 from 'yaz0';
+// The wasm build runs everywhere; the native addon needs node-gyp (broken on Windows).
+import * as Yaz0 from 'yaz0/lib/browser/index.js';
 
 import { fileExists } from './util';
 
