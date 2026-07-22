@@ -38,6 +38,16 @@ class ResolvedWorldFlag {
     }
     return this.values.has(value);
   }
+
+  resolved(): 'all' | 'none' | string[] {
+    if (this.value === 'all') {
+      return 'all';
+    }
+    if (this.value === 'none') {
+      return 'none';
+    }
+    return [...this.values].sort();
+  }
 }
 
 export type ResolvedWorldFlags = {[k in WorldFlag]: ResolvedWorldFlag};

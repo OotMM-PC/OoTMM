@@ -1,9 +1,11 @@
 import type { Options, OptionsInput, Settings, MonitorCallbacks } from '@ootmm/core';
+import type { LogicResult } from '@ootmm/logic';
 
 import { Monitor, Random, applyRandomSettings, options } from '@ootmm/core';
 import { logic } from '@ootmm/logic';
 import { codegen } from './codegen';
 import { custom } from './custom';
+import { makePcSeedArtifact } from './pc-seed';
 import { decompressGames } from './decompress';
 import { pack } from './pack';
 import { buildPatchfiles } from './patch-build';
@@ -89,6 +91,7 @@ export class Generator {
     const addresses = makeAddresses(roms);
     let patchfiles: Patchfile[];
     let log: string | null = null;
+    let pcSeedLogic: LogicResult | null = null;
 
     /* Apply random settings (if enabled) */
     if (this.opts.mode === 'random') {
@@ -106,6 +109,7 @@ export class Generator {
 
       /* Run logic */
       const logicResult = await logic(this.monitor, this.opts);
+      pcSeedLogic = logicResult;
       patchfile.setHash(logicResult.hash);
       patchfiles = await buildPatchfiles({
         patch: patchfile,
@@ -163,6 +167,17 @@ export class Generator {
           patchfile.multiId = teamsUuids[team];
           const data = await patchfiles[i].serialize();
           files.push(makeFile({ name: 'Patch', hash: hashFileName, data, mime: 'application/octet-stream', world: playerNumber(i), team: teamNumber(team), ext: 'ootmm' }));
+        }
+      }
+    }
+
+    /* Build PC seed(s): the .ootmm.json artifact the PC ports load. Patch mode has no logic result, so none is derived there. */
+    if (pcSeedLogic) {
+      for (let i = 0; i < patchfiles.length; i++) {
+        for (let team = 0; team < this.opts.settings.teams; ++team) {
+          const teamId = Array.from(teamsUuids[team]).map(b => b.toString(16).padStart(2, '0')).join('');
+          const data = makePcSeedArtifact(pcSeedLogic, this.opts, i, teamId);
+          files.push(makeFile({ name: 'PCSeed', hash: hashFileName, data, mime: 'application/json', world: playerNumber(i), team: teamNumber(team), ext: 'ootmm.json' }));
         }
       }
     }

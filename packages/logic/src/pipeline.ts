@@ -2,7 +2,7 @@ import type { Item, Options, PlayerItem, PlayerItems } from '@ootmm/core';
 import type { ItemPlacement } from './types';
 import type { Hints } from './hints';
 import type { Analysis } from './analysis';
-import type { DungeonEntrance, ResolvedWorldFlags, WorldCheck } from './world';
+import type { World } from './world';
 import type { Location } from './types';
 
 import { Monitor, Random } from '@ootmm/core';
@@ -30,20 +30,7 @@ class LogicPipeline<State> {
   }
 };
 
-export type LogicResultWorld = {
-  resolvedFlags: ResolvedWorldFlags;
-  checks: { [k: string]: WorldCheck };
-  prices: number[];
-  entranceOverrides: Map<string, string>;
-  bossIds: number[];
-  songEventsOot: number[];
-  songEventsMm: number[];
-  dungeonsEntrances: Map<string, DungeonEntrance>;
-  preCompleted: Set<string>;
-  locations: Set<string>;
-  regions: { [k: string]: string };
-  dungeons: { [k: string]: Set<string> };
-};
+export type LogicResultWorld = World;
 
 export type LogicResult = {
   worlds: LogicResultWorld[];
@@ -98,20 +85,7 @@ export async function logic(monitor: Monitor, opts: Options): Promise<LogicResul
     .apply(logicPassHash)
     .exec();
 
-    const worlds: LogicResultWorld[] = data.worlds.map(w => ({
-      resolvedFlags: w.resolvedFlags,
-      checks: w.checks,
-      prices: w.prices,
-      entranceOverrides: w.entranceOverrides,
-      bossIds: w.bossIds,
-      songEventsOot: w.songEventsOot,
-      songEventsMm: w.songEventsMm,
-      dungeonsEntrances: w.dungeonsEntrances,
-      preCompleted: w.preCompleted,
-      locations: w.locations,
-      regions: w.regions,
-      dungeons: w.dungeons,
-    }));
+    const worlds: LogicResultWorld[] = data.worlds;
 
     return {
       worlds,

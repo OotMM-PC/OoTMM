@@ -84,7 +84,9 @@ export function locationsZelda(settings: Settings) {
   return locs;
 }
 
-export function isLocationRenewable(world: World, loc: Location) {
+type LocationWorld = Pick<World, 'checks'>;
+
+export function isLocationRenewable(world: LocationWorld, loc: Location) {
   const locationId = locationData(loc).id;
   if (MM_SCRUBS.includes(locationId) || MM_MERCHANTS.includes(locationId) || OOT_MERCHANTS.includes(locationId))
     return true;
@@ -101,7 +103,7 @@ export function isLocationRenewable(world: World, loc: Location) {
   return false;
 }
 
-export function isLocationLicenseGranting(world: World, loc: Location) {
+export function isLocationLicenseGranting(world: LocationWorld, loc: Location) {
   const locationId = locationData(loc).id;
   if (ONE_TIME_SHOP_CHECKS.includes(locationId) || MM_MERCHANTS.includes(locationId) || OOT_MERCHANTS.includes(locationId)) {
     return false;
