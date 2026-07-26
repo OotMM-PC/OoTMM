@@ -1,7 +1,7 @@
 import type { Game, Options, OptionsInput, PlayerItem, Region, Settings } from '@ootmm/core';
 import type { LogicResult, Location } from '@ootmm/logic';
 
-import { ENTRANCES, GOSSIPS_BY_LOCATION, HINTS, Monitor, options as resolveOptions, REGIONS, regionData, SCENES } from '@ootmm/core';
+import { ENTRANCES, GOSSIPS_BY_LOCATION, HINTS, ItemHelpers, Monitor, options as resolveOptions, REGIONS, regionData, SCENES } from '@ootmm/core';
 import { BOSS_INDEX_BY_DUNGEON, DUNGEON_ENTRANCES, DUNGEONS_BY_KEY, END_BOSS_METADATA, locationData, logic as runLogic, PATH_EVENT_DATA } from '@ootmm/logic';
 import { itemName } from './names';
 import type { PcSeedLogic } from './pc-seed-logic';
@@ -266,7 +266,7 @@ function makePlacements(logic: LogicResult, worldId: number): PcSeedPlacement[] 
       cloakItemName: cloak ? itemName(cloak.id) : undefined,
       ownerPlayer: item.ownerPlayer,
       sourcePlayer: worldId + 1,
-      major: false,
+      major: ItemHelpers.isItemMajor(playerItem.item),
     });
   }
 
