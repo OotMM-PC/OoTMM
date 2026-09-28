@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { SETTINGS } from '@ootmm/core';
+import { Random, SETTINGS } from '@ootmm/core';
 
 import { generatePcSeed, makeNativeCheckAliases, pcCheckId } from '../lib/combo/pc-seed';
 import { parsePcSeedSettingsPatch, REMOVED_V30_SETTINGS } from '../lib/combo/pc-seed-settings';
@@ -160,4 +160,23 @@ describe('pc seed native identities', () => {
     expect(aliases).toContain('RC_CLOCK_TOWN_SOUTH_CHEST_UPPER');
     expect(aliases).not.toContain('MM_CLOCK_TOWN_SOUTH_CHEST_UPPER');
   });
+});
+
+describe('pc seed random starting age', () => {
+  it.each([{ draw: 0, age: 'child' }, { draw: 1, age: 'adult' }])(
+    'resolves $age before solving and serializing', async ({ draw, age }) => {
+      const next = vi.spyOn(Random.prototype, 'next').mockReturnValueOnce(draw);
+      const settings = { startingAge: 'random' as const };
+      try {
+        const artifact = JSON.parse(await generatePcSeed({
+          seed: 'windows-spawn-options-31.1-none-random', settings,
+        }));
+        expect(artifact.settings.startingAge).toBe(age);
+        expect(artifact.placements.length).toBeGreaterThan(0);
+        expect(artifact.entrancesSpawn).toEqual([0xF20, 0xBB]);
+        expect(settings.startingAge).toBe('random');
+      } finally {
+        next.mockRestore();
+      }
+    });
 });

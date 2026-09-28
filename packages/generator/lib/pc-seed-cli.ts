@@ -15,6 +15,7 @@ import { logic } from '@ootmm/logic';
 import { PRESETS } from './combo/presets';
 import { makePcSeedArtifact } from './combo/pc-seed';
 import { parsePcSeedSettingsPatch } from './combo/pc-seed-settings';
+import { prepareRandomSettings } from './combo/random-settings';
 
 const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'out');
 
@@ -107,6 +108,7 @@ const main = async () => {
     optsInput.seed = 'OOTMM-PC';
   }
   const opts = options(optsInput);
+  await prepareRandomSettings(opts);
 
   const monitor = new Monitor({}, false);
   console.log(`Running OoTMM logic (seed=${opts.seed}, games=${opts.settings.games}, players=${opts.settings.players})...`);

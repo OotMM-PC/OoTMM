@@ -1,11 +1,12 @@
-import type { Options, OptionsInput, Settings, MonitorCallbacks } from '@ootmm/core';
+import type { Options, OptionsInput, MonitorCallbacks } from '@ootmm/core';
 import type { LogicResult } from '@ootmm/logic';
 
-import { Monitor, Random, applyRandomSettings, options } from '@ootmm/core';
+import { Monitor, options } from '@ootmm/core';
 import { logic } from '@ootmm/logic';
 import { codegen } from './codegen';
 import { custom } from './custom';
 import { makePcSeedArtifact } from './pc-seed';
+import { prepareRandomSettings } from './random-settings';
 import { decompressGames } from './decompress';
 import { pack } from './pack';
 import { buildPatchfiles } from './patch-build';
@@ -51,22 +52,6 @@ function makeFile(opts: { name?: string, data: string | Uint8Array, mime: string
   return { name, data: opts.data, mime: opts.mime };
 }
 
-/* For settings that require randomization always */
-async function randomVariants(settings: Settings) {
-  const random = new Random();
-  const randBytes = crypto.getRandomValues(new Uint8Array(32));
-  const randBytesAsHex = Array.from(randBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-  await random.seed(randBytesAsHex);
-
-  if (settings.startingAge === 'random') {
-    if (random.next() & 1) {
-      settings.startingAge = 'adult';
-    } else {
-      settings.startingAge = 'child';
-    }
-  }
-}
-
 export class Generator {
   private monitor: Monitor;
   private oot: Uint8Array;
@@ -93,12 +78,7 @@ export class Generator {
     let log: string | null = null;
     let pcSeedLogic: LogicResult | null = null;
 
-    /* Apply random settings (if enabled) */
-    if (this.opts.mode === 'random') {
-      this.opts.settings = await applyRandomSettings(this.opts.random, this.opts.settings);
-    } else if (this.opts.mode === 'create') {
-      await randomVariants(this.opts.settings);
-    }
+    await prepareRandomSettings(this.opts);
 
     if (this.opts.mode !== 'patch') {
       if (!process.env.__IS_BROWSER__) {

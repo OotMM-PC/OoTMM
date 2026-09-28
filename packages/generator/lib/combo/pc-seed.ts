@@ -6,6 +6,7 @@ import { BOSS_INDEX_BY_DUNGEON, DUNGEON_ENTRANCES, DUNGEONS_BY_KEY, END_BOSS_MET
 import { itemName } from './names';
 import type { PcSeedLogic } from './pc-seed-logic';
 import { makePcSeedLogic } from './pc-seed-logic';
+import { prepareRandomSettings } from './random-settings';
 
 const FORMAT = 'ootmm.pc.seed.v2';
 const GENERATOR_VERSION = '31.1';
@@ -550,6 +551,7 @@ export function makePcSeedArtifact(logic: LogicResult, opts: Options, worldId: n
 // Resolve options, run logic, serialize the artifact. Pure logic (no ROM/patch/native tools) so it runs in a browser worker or Node; single-world (multiworld callers use makePcSeedArtifact per world).
 export async function generatePcSeed(input: OptionsInput, onLog?: (msg: string) => void): Promise<string> {
   const opts = resolveOptions(input);
+  await prepareRandomSettings(opts);
   const monitor = new Monitor(onLog ? { onLog } : {}, false);
   const result = await runLogic(monitor, opts);
   const teamId = '00'.repeat(16);
