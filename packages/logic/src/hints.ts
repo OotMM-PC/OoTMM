@@ -8,7 +8,7 @@ import { Pathfinder } from './pathfind';
 import { DUNGEONS_REGIONS } from './world';
 import { isLocationFullyShuffled, locationData, makeLocation } from './locations';
 
-const FIXED_HINTS_LOCATIONS = [
+export const FIXED_HINTS_LOCATIONS = [
   'OOT Skulltula House 100 Tokens',
   'OOT Skulltula House 10 Tokens',
   'OOT Skulltula House 20 Tokens',

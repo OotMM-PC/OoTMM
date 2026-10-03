@@ -2,8 +2,11 @@ import type { Game, Options, OptionsInput, PlayerItem, Region, Settings } from '
 import type { LogicResult, Location } from '@ootmm/logic';
 
 import { ENTRANCES, GOSSIPS_BY_LOCATION, HINTS, ItemHelpers, Monitor, options as resolveOptions, REGIONS, regionData, SCENES } from '@ootmm/core';
-import { BOSS_INDEX_BY_DUNGEON, DUNGEON_ENTRANCES, DUNGEONS_BY_KEY, END_BOSS_METADATA, locationData, logic as runLogic, PATH_EVENT_DATA } from '@ootmm/logic';
+import { BOSS_INDEX_BY_DUNGEON, DUNGEON_ENTRANCES, DUNGEONS_BY_KEY, END_BOSS_METADATA, FIXED_HINTS_LOCATIONS, locationData, logic as runLogic, makeLocation, PATH_EVENT_DATA } from '@ootmm/logic';
 import { itemName } from './names';
+import type { HintTextContext } from './pc-hint-text';
+import { gossipHintText, hintRegionText, junkHintText, npcRewardText, specialCondText } from './pc-hint-text';
+import { worldConfig } from './randomizer/world-config';
 import type { PcSeedLogic } from './pc-seed-logic';
 import { makePcSeedLogic } from './pc-seed-logic';
 import { prepareRandomSettings } from './random-settings';
@@ -74,6 +77,7 @@ type PcSeedHintRegion = {
   name: string;     // REGIONS key, e.g. 'DEKU_TREE' ('NONE' when absent)
   regionId: number; // og numeric region id (u8; MM regions have the high bit set)
   world: number;    // 0-based world of the region
+  text?: string;
 };
 
 type PcSeedHintItem = {
@@ -98,6 +102,7 @@ type PcSeedGossipHint = {
   checkWorld?: number;         // item-exact: 1-based world holding the check
   items?: PcSeedHintItem[];    // item-exact (1..3) / item-region (1)
   junkId?: number;             // junk: index into og kJunkHints (mod 30)
+  text: string;
 };
 
 type PcSeedHints = {
@@ -107,6 +112,9 @@ type PcSeedHints = {
   oathToOrder: PcSeedHintRegion[];    // 6 (song-notes mode) or 1 + NONEs
   ganonBossKey: PcSeedHintRegion;     // NONE unless ganonBossKey === 'anywhere'
   staticImportances: number[];        // FIXED_HINTS_LOCATIONS order (og staticHintsImportance)
+  junk: string[];
+  staticRewards: string[];
+  specialConds: Record<string, string>;
 };
 
 type PcSeedArtifact = {
@@ -158,11 +166,24 @@ function gameFromItemId(itemId: string): Game {
   return 'oot';
 }
 
-function itemToPc(item: PlayerItem) {
+function pcItemName(itemId: string, settings: Settings): string {
+  if (itemId === 'OOT_ARROW_ICE' && settings.blueFireArrows) {
+    return 'Blue Fire Arrows';
+  }
+  if (itemId === 'OOT_ARROW_LIGHT' && settings.sunlightArrows) {
+    return 'Sunlight Arrows';
+  }
+  if (itemId === 'MM_BOMBER_NOTEBOOK' && settings.menuNotebook) {
+    return "Bombers' Tracker";
+  }
+  return itemName(itemId);
+}
+
+function itemToPc(item: PlayerItem, settings: Settings) {
   return {
     itemGame: gameFromItemId(item.item.id),
     itemId: item.item.id,
-    itemName: itemName(item.item.id),
+    itemName: pcItemName(item.item.id, settings),
     ownerPlayer: playerNumber(item.player),
   };
 }
@@ -231,7 +252,7 @@ export function makeNativeCheckAliases(game: Game, locationId: string, checkId: 
   return [...aliases].filter(alias => alias !== checkId).sort((a, b) => a.localeCompare(b));
 }
 
-function makePlacements(logic: LogicResult, worldId: number): PcSeedPlacement[] {
+function makePlacements(logic: LogicResult, worldId: number, settings: Settings): PcSeedPlacement[] {
   const placements: PcSeedPlacement[] = [];
 
   for (const [location, playerItem] of logic.items) {
@@ -245,7 +266,7 @@ function makePlacements(logic: LogicResult, worldId: number): PcSeedPlacement[] 
       continue;
     }
 
-    const item = itemToPc(playerItem);
+    const item = itemToPc(playerItem, settings);
     const cloak = logic.itemCloaks.get(location);
     const checkId = pcCheckId(check.game, locData.id);
     const checkScene = (SCENES as Record<string, number>)[check.scene];
@@ -264,7 +285,7 @@ function makePlacements(logic: LogicResult, worldId: number): PcSeedPlacement[] 
       itemName: item.itemName,
       cloakItemGame: cloak ? gameFromItemId(cloak.id) : undefined,
       cloakItemId: cloak?.id,
-      cloakItemName: cloak ? itemName(cloak.id) : undefined,
+      cloakItemName: cloak ? pcItemName(cloak.id, settings) : undefined,
       ownerPlayer: item.ownerPlayer,
       sourcePlayer: worldId + 1,
       major: ItemHelpers.isItemMajor(playerItem.item),
@@ -298,7 +319,7 @@ function makeEntrances(logic: LogicResult, worldId: number): PcSeedEntrance[] {
   return entrances;
 }
 
-function makeStartingItems(logic: LogicResult, worldId: number): PcSeedStartingItem[] {
+function makeStartingItems(logic: LogicResult, worldId: number, settings: Settings): PcSeedStartingItem[] {
   const startingItems: PcSeedStartingItem[] = [];
 
   for (const [playerItem, count] of logic.startingItems) {
@@ -308,7 +329,7 @@ function makeStartingItems(logic: LogicResult, worldId: number): PcSeedStartingI
     if (count <= 0) {
       continue;
     }
-    const item = itemToPc(playerItem);
+    const item = itemToPc(playerItem, settings);
     startingItems.push({
       itemGame: item.itemGame,
       itemId: item.itemId,
@@ -341,17 +362,47 @@ function hintRegion(region: Region): PcSeedHintRegion {
   };
 }
 
-function hintItems(items: PlayerItem[], importances: number[]): PcSeedHintItem[] {
+function hintRegionWithText(ctx: HintTextContext, region: Region): PcSeedHintRegion {
+  const r = hintRegion(region);
+  return { ...r, text: hintRegionText(ctx, r.regionId, r.world + 1, true) };
+}
+
+function staticReward(ctx: HintTextContext, logic: LogicResult, worldId: number, location: string, importance: number): string {
+  const loc = makeLocation(location, worldId);
+  const placed = logic.items.get(loc);
+  const game: Game = location.startsWith('MM ') ? 'mm' : 'oot';
+  return placed ? npcRewardText(ctx, game, placed.item, logic.itemCloaks.get(loc), playerNumber(placed.player), importance) : '';
+}
+
+function hintItems(items: PlayerItem[], importances: number[], settings: Settings): PcSeedHintItem[] {
   return items.map((it, i) => ({
     itemId: it.item.id,
-    itemName: itemName(it.item.id),
+    itemName: pcItemName(it.item.id, settings),
     player: playerNumber(it.player),
     importance: typeof importances[i] === 'number' ? importances[i] : -1,
   }));
 }
 
-function makeHints(logic: LogicResult, worldId: number): PcSeedHints {
+function gossipText(ctx: HintTextContext, rec: PcSeedGossipHint, items: PlayerItem[]): string {
+  const world = (rec.region?.world ?? 0) + 1;
+  const textItems = (rec.items ?? []).map((it, i) => ({ item: items[i].item, player: it.player, importance: it.importance }));
+  switch (rec.type) {
+    case 'path':
+      return gossipHintText(ctx, { type: 'path', regionId: rec.region!.regionId, world, pathId: rec.pathId!, pathSubId: rec.pathSubId!, player: rec.pathPlayer! });
+    case 'foolish':
+      return gossipHintText(ctx, { type: 'foolish', regionId: rec.region!.regionId, world });
+    case 'item-exact':
+      return gossipHintText(ctx, { type: 'item-exact', checkId: rec.checkId!, world: rec.checkWorld!, items: textItems });
+    case 'item-region':
+      return gossipHintText(ctx, { type: 'item-region', regionId: rec.region!.regionId, world, item: textItems[0] });
+    case 'junk':
+      return gossipHintText(ctx, { type: 'junk', junkId: rec.junkId! });
+  }
+}
+
+function makeHints(logic: LogicResult, worldId: number, settings: Settings): PcSeedHints {
   const wh = logic.hints[worldId];
+  const ctx: HintTextContext = { settings, config: worldConfig(logic.worlds[worldId], settings), playerId: worldId + 1 };
   const gossip: PcSeedGossipHint[] = [];
   for (const stone of Object.keys(wh.gossip)) {
     const h = wh.gossip[stone];
@@ -362,7 +413,7 @@ function makeHints(logic: LogicResult, worldId: number): PcSeedHints {
     let stoneKey = pool.id;
     if (pool.type === 'gossip-grotto') stoneKey |= 0x20;
     else if (pool.type === 'gossip-moon') stoneKey |= 0x40;
-    const rec: PcSeedGossipHint = { stone, stoneGame: h.game, stoneKey, type: h.type };
+    const rec: PcSeedGossipHint = { stone, stoneGame: h.game, stoneKey, type: h.type, text: '' };
     switch (h.type) {
       case 'path': {
         rec.region = hintRegion(h.region);
@@ -398,28 +449,35 @@ function makeHints(logic: LogicResult, worldId: number): PcSeedHints {
         rec.checkId = typeof checkId === 'number' ? checkId : 0;
         rec.checkName = h.check;
         rec.checkWorld = h.world + 1;
-        rec.items = hintItems(h.items, h.importances);
+        rec.items = hintItems(h.items, h.importances, settings);
         break;
       }
       case 'item-region':
         rec.region = hintRegion(h.region);
-        rec.items = hintItems([h.item], [h.importance]);
+        rec.items = hintItems([h.item], [h.importance], settings);
         break;
       case 'junk':
         rec.junkId = h.id;
         break;
     }
+    rec.text = gossipText(ctx, rec, h.type === 'item-exact' ? h.items : h.type === 'item-region' ? [h.item] : []);
     gossip.push(rec);
   }
   gossip.sort((a, b) => a.stone.localeCompare(b.stone));
 
   return {
     gossip,
-    dungeonRewards: wh.dungeonRewards.map(hintRegion),
-    lightArrow: hintRegion(wh.lightArrow),
-    oathToOrder: wh.oathToOrder.map(hintRegion),
-    ganonBossKey: hintRegion(wh.ganonBossKey),
+    dungeonRewards: wh.dungeonRewards.map((r) => hintRegionWithText(ctx, r)),
+    lightArrow: hintRegionWithText(ctx, wh.lightArrow),
+    oathToOrder: wh.oathToOrder.map((r) => hintRegionWithText(ctx, r)),
+    ganonBossKey: hintRegionWithText(ctx, wh.ganonBossKey),
     staticImportances: [...wh.staticHintsImportances],
+    junk: Array.from({ length: 30 }, (_, i) => junkHintText(i)),
+    staticRewards: FIXED_HINTS_LOCATIONS.map((location, i) => staticReward(ctx, logic, worldId, location, wh.staticHintsImportances[i])),
+    specialConds: Object.fromEntries(['BRIDGE', 'MOON'].flatMap((special) => {
+      const text = specialCondText(ctx, special);
+      return text ? [[special, text]] : [];
+    })),
   };
 }
 
@@ -538,10 +596,10 @@ export function makePcSeedArtifact(logic: LogicResult, opts: Options, worldId: n
     dungeonEntrances: makeDungeonEntrances(logic, worldId),
     bossIds: [...logic.worlds[worldId].bossIds],
     dungeonWarps: DUNGEON_WARP_ENTRANCE_NAMES.map(e => resolvedAbsEntrance(e, logic, worldId)),
-    placements: makePlacements(logic, worldId),
+    placements: makePlacements(logic, worldId, opts.settings),
     entrances: makeEntrances(logic, worldId),
-    startingItems: makeStartingItems(logic, worldId),
-    hints: makeHints(logic, worldId),
+    startingItems: makeStartingItems(logic, worldId, opts.settings),
+    hints: makeHints(logic, worldId, opts.settings),
     logic: makePcSeedLogic(logic.worlds[worldId], opts.settings, worldId),
   };
 
