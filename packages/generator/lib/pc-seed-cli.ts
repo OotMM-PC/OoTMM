@@ -16,6 +16,7 @@ import { PRESETS } from './combo/presets';
 import { makePcSeedArtifact } from './combo/pc-seed';
 import { parsePcSeedSettingsPatch } from './combo/pc-seed-settings';
 import { prepareRandomSettings } from './combo/random-settings';
+import { makeSpoilerLog } from './combo/spoiler';
 
 const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'out');
 
@@ -130,6 +131,11 @@ const main = async () => {
   }
   console.log(`Wrote ${written.length} PC seed file(s) to out/:`);
   written.forEach((n) => console.log('  ' + n));
+  if (opts.settings.generateSpoilerLog) {
+    const spoilerName = `OoTMM-Spoiler-${logicResult.hash}.txt`;
+    await fs.writeFile(path.join(OUT_DIR, spoilerName), makeSpoilerLog(logicResult, opts));
+    console.log(`Wrote spoiler log to out/: ${spoilerName}`);
+  }
 };
 
 main().catch((err) => {
