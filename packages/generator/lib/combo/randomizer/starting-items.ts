@@ -25,6 +25,10 @@ export class RandomizerPatcherStartingItems {
     return (new RandomizerPatcherStartingItems(ctx)).execute();
   }
 
+  public static effective(ctx: RandomizerPatcherStartingItemsContext): ItemsCount {
+    return (new RandomizerPatcherStartingItems(ctx)).effectiveStartingItems();
+  }
+
   private execute(): Uint8Array {
     const ids: number[] = [];
     const ids2: number[] = [];

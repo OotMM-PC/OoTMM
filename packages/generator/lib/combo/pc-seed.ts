@@ -1,7 +1,7 @@
 import type { Game, Options, OptionsInput, PlayerItem, Region, Settings } from '@ootmm/core';
 import type { LogicResult, Location } from '@ootmm/logic';
 
-import { ENTRANCES, GOSSIPS_BY_LOCATION, HINTS, ItemHelpers, Monitor, options as resolveOptions, REGIONS, regionData, SCENES } from '@ootmm/core';
+import { ENTRANCES, GOSSIPS_BY_LOCATION, HINTS, ItemHelpers, makePlayerItem, Monitor, options as resolveOptions, REGIONS, regionData, SCENES } from '@ootmm/core';
 import { BOSS_INDEX_BY_DUNGEON, DUNGEON_ENTRANCES, DUNGEONS_BY_KEY, END_BOSS_METADATA, FIXED_HINTS_LOCATIONS, locationData, logic as runLogic, makeLocation, PATH_EVENT_DATA } from '@ootmm/logic';
 import { itemName } from './names';
 import type { HintTextContext } from './pc-hint-text';
@@ -10,6 +10,7 @@ import { worldConfig } from './randomizer/world-config';
 import type { PcSeedLogic } from './pc-seed-logic';
 import { makePcSeedLogic } from './pc-seed-logic';
 import { prepareRandomSettings } from './random-settings';
+import { RandomizerPatcherStartingItems } from './randomizer/starting-items';
 
 const FORMAT = 'ootmm.pc.seed.v2';
 const GENERATOR_VERSION = '31.1';
@@ -320,7 +321,7 @@ function makeEntrances(logic: LogicResult, worldId: number): PcSeedEntrance[] {
 }
 
 function makeStartingItems(logic: LogicResult, worldId: number, settings: Settings): PcSeedStartingItem[] {
-  const startingItems: PcSeedStartingItem[] = [];
+  const counts = new Map<string, { playerItem: PlayerItem; count: number }>();
 
   for (const [playerItem, count] of logic.startingItems) {
     if (playerItem.player !== 'all' && playerItem.player !== worldId) {
@@ -329,6 +330,18 @@ function makeStartingItems(logic: LogicResult, worldId: number, settings: Settin
     if (count <= 0) {
       continue;
     }
+    counts.set(playerItem.item.id, { playerItem, count });
+  }
+
+  for (const [item, count] of RandomizerPatcherStartingItems.effective({ worldId, logic, settings })) {
+    const existing = counts.get(item.id);
+    if (count > 0 && (!existing || existing.count < count)) {
+      counts.set(item.id, { playerItem: existing?.playerItem ?? makePlayerItem(item, worldId), count });
+    }
+  }
+
+  const startingItems: PcSeedStartingItem[] = [];
+  for (const { playerItem, count } of counts.values()) {
     const item = itemToPc(playerItem, settings);
     startingItems.push({
       itemGame: item.itemGame,
