@@ -118,16 +118,20 @@ const main = async () => {
 
   await fs.mkdir(OUT_DIR, { recursive: true });
   const players = opts.settings.players;
-  // The PC seed is independent of team cosmetics; use a deterministic zero team id.
-  const teamId = '00'.repeat(16);
+  const teams = opts.settings.teams;
+  const teamIds = Array.from({ length: teams }, () =>
+    teams === 1 ? '00'.repeat(16) : Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('hex'));
 
   const written: string[] = [];
   for (let i = 0; i < players; i++) {
-    const pcSeed = makePcSeedArtifact(logicResult, opts, i, teamId);
-    const name = players === 1 ? `OoTMM-PCSeed-${logicResult.hash}.ootmm.json`
-                               : `OoTMM-PCSeed-${logicResult.hash}-Player${i + 1}.ootmm.json`;
-    await fs.writeFile(path.join(OUT_DIR, name), pcSeed);
-    written.push(name);
+    for (let team = 0; team < teams; team++) {
+      const pcSeed = makePcSeedArtifact(logicResult, opts, i, teamIds[team]);
+      const player = players === 1 ? '' : `-Player${i + 1}`;
+      const teamSuffix = teams === 1 ? '' : `-Team${team + 1}`;
+      const name = `OoTMM-PCSeed-${logicResult.hash}${player}${teamSuffix}.ootmm.json`;
+      await fs.writeFile(path.join(OUT_DIR, name), pcSeed);
+      written.push(name);
+    }
   }
   console.log(`Wrote ${written.length} PC seed file(s) to out/:`);
   written.forEach((n) => console.log('  ' + n));
