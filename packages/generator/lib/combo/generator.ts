@@ -13,6 +13,7 @@ import { buildPatchfiles } from './patch-build';
 import { Patchfile } from './patch-build/patchfile';
 import { makeAddresses } from './addresses';
 import { makeSpoilerLog } from './spoiler';
+import { makeSeedName } from './seed-name';
 
 const env = process.env.NODE_ENV || 'development';
 const isDev = (env !== 'production');
@@ -157,7 +158,7 @@ export class Generator {
         for (let team = 0; team < this.opts.settings.teams; ++team) {
           const teamId = Array.from(teamsUuids[team]).map(b => b.toString(16).padStart(2, '0')).join('');
           const data = makePcSeedArtifact(pcSeedLogic, this.opts, i, teamId);
-          files.push(makeFile({ name: 'PCSeed', hash: hashFileName, data, mime: 'application/json', world: playerNumber(i), team: teamNumber(team), ext: 'ootmm.json' }));
+          files.push(makeFile({ name: makeSeedName(this.opts.seed, pcSeedLogic.hash).slug, hash: hashFileName, data, mime: 'application/json', world: playerNumber(i), team: teamNumber(team), ext: 'ootmm.json' }));
         }
       }
     }

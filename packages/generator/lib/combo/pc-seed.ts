@@ -11,6 +11,7 @@ import type { PcSeedLogic } from './pc-seed-logic';
 import { makePcSeedLogic } from './pc-seed-logic';
 import { prepareRandomSettings } from './random-settings';
 import { RandomizerPatcherStartingItems } from './randomizer/starting-items';
+import { makeSeedName } from './seed-name';
 
 const FORMAT = 'ootmm.pc.seed.v2';
 const GENERATOR_VERSION = '31.1';
@@ -122,6 +123,7 @@ type PcSeedArtifact = {
   format: typeof FORMAT;
   generatorVersion: typeof GENERATOR_VERSION;
   seedId: string;
+  seedName: string;
   settingsHash: string;
   playerId: number;
   playerCount: number;
@@ -587,6 +589,7 @@ export function makePcSeedArtifact(logic: LogicResult, opts: Options, worldId: n
     format: FORMAT,
     generatorVersion: GENERATOR_VERSION,
     seedId: opts.seed,
+    seedName: makeSeedName(opts.seed, logic.hash).name,
     settingsHash: logic.hash,
     playerId: worldId + 1,
     playerCount: opts.settings.players,

@@ -16,6 +16,7 @@ import { PRESETS } from './combo/presets';
 import { makePcSeedArtifact } from './combo/pc-seed';
 import { parsePcSeedSettingsPatch } from './combo/pc-seed-settings';
 import { prepareRandomSettings } from './combo/random-settings';
+import { makeSeedName, seedFileStem } from './combo/seed-name';
 import { makeSpoilerLog } from './combo/spoiler';
 
 const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'out');
@@ -105,16 +106,15 @@ const makeOptions = async (args: string[]): Promise<OptionsInput> => {
 
 const main = async () => {
   const optsInput = await makeOptions(process.argv.slice(2));
-  if (!optsInput.seed) {
-    optsInput.seed = 'OOTMM-PC';
-  }
   const opts = options(optsInput);
   await prepareRandomSettings(opts);
 
   const monitor = new Monitor({}, false);
   console.log(`Running OoTMM logic (seed=${opts.seed}, games=${opts.settings.games}, players=${opts.settings.players})...`);
   const logicResult = await logic(monitor, opts);
-  console.log(`Logic done. hash=${logicResult.hash}, worlds=${logicResult.worlds.length}`);
+  const seedName = makeSeedName(opts.seed, logicResult.hash);
+  const stem = seedFileStem(seedName, logicResult.hash);
+  console.log(`Logic done. name=${seedName.name}, hash=${logicResult.hash}, worlds=${logicResult.worlds.length}`);
 
   await fs.mkdir(OUT_DIR, { recursive: true });
   const players = opts.settings.players;
@@ -128,7 +128,7 @@ const main = async () => {
       const pcSeed = makePcSeedArtifact(logicResult, opts, i, teamIds[team]);
       const player = players === 1 ? '' : `-Player${i + 1}`;
       const teamSuffix = teams === 1 ? '' : `-Team${team + 1}`;
-      const name = `OoTMM-PCSeed-${logicResult.hash}${player}${teamSuffix}.ootmm.json`;
+      const name = `${stem}${player}${teamSuffix}.ootmm.json`;
       await fs.writeFile(path.join(OUT_DIR, name), pcSeed);
       written.push(name);
     }
@@ -136,7 +136,7 @@ const main = async () => {
   console.log(`Wrote ${written.length} PC seed file(s) to out/:`);
   written.forEach((n) => console.log('  ' + n));
   if (opts.settings.generateSpoilerLog) {
-    const spoilerName = `OoTMM-Spoiler-${logicResult.hash}.txt`;
+    const spoilerName = `${stem}-Spoiler.txt`;
     await fs.writeFile(path.join(OUT_DIR, spoilerName), makeSpoilerLog(logicResult, opts));
     console.log(`Wrote spoiler log to out/: ${spoilerName}`);
   }
