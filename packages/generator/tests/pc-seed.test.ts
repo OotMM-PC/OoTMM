@@ -7,7 +7,7 @@ import { parsePcSeedSettingsPatch, REMOVED_V30_SETTINGS } from '../lib/combo/pc-
 
 describe('pc seed v31 settings', () => {
   it('exports the complete v31 settings registry', async () => {
-    expect(SETTINGS).toHaveLength(399);
+    expect(SETTINGS).toHaveLength(400);
 
     const artifact = JSON.parse(await generatePcSeed({
       seed: 'pc-v31-default',

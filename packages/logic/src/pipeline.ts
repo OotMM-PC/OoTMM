@@ -13,6 +13,7 @@ import { logicPassCloak, logicPassEntrances, logicPassMinimize, logicPassSolver 
 import { logicPassAnalysis, logicPassAnalysisFoolish, logicPassAnalysisPaths } from './analysis';
 import { logicPassHints } from './hints';
 import { logicPassPrice } from './price';
+import { STARTING_CHECK_BALANCE_ATTEMPTS, isBetterStartingLayout, startingCheckCounts, wantsStartingCheckBalance } from './balance';
 
 type LogicPassFunc<State, Out> = (state: State) => Out;
 
@@ -47,10 +48,13 @@ function pipeline<State>(state: State): LogicPipeline<State> {
   return new LogicPipeline(state);
 }
 
-export const worldState = async (monitor: Monitor, opts: Options) => {
+export const worldState = async (monitor: Monitor, opts: Options, attempt = 0) => {
   const random = new Random();
-  const seedKey = [opts.seed.length.toString(16), opts.seed, opts.settings.generateSpoilerLog ? '1' : '0'].join('\0');
-  await random.seed(seedKey);
+  const seedParts = [opts.seed.length.toString(16), opts.seed, opts.settings.generateSpoilerLog ? '1' : '0'];
+  if (attempt > 0) {
+    seedParts.push(`balance-${attempt}`);
+  }
+  await random.seed(seedParts.join('\0'));
   const state = { monitor, opts, settings: opts.settings, random };
 
   return pipeline(state)
@@ -62,12 +66,37 @@ export const worldState = async (monitor: Monitor, opts: Options) => {
     .exec();
 };
 
-export const solvedWorldState = async (monitor: Monitor, opts: Options) => {
-  let state = await worldState(monitor, opts);
+const layoutState = async (monitor: Monitor, opts: Options, attempt: number) => {
+  const state = await worldState(monitor, opts, attempt);
   return pipeline(state)
     .apply(logicPassPrice)
     .apply(logicPassSongEvents)
     .apply(logicPassEntrances)
+    .exec();
+};
+
+const balancedLayoutState = async (monitor: Monitor, opts: Options) => {
+  if (!wantsStartingCheckBalance(opts.settings)) {
+    return layoutState(monitor, opts, 0);
+  }
+
+  let best: Awaited<ReturnType<typeof layoutState>> | null = null;
+  let bestCounts: number[] | null = null;
+  for (let attempt = 0; attempt < STARTING_CHECK_BALANCE_ATTEMPTS; ++attempt) {
+    const state = await layoutState(monitor, opts, attempt);
+    const counts = startingCheckCounts(state.worlds, state.settings, state.startingItems);
+    monitor.log(`Starting check balance attempt ${attempt + 1}: ${counts.join('/')}`);
+    if (isBetterStartingLayout(counts, bestCounts)) {
+      best = state;
+      bestCounts = counts;
+    }
+  }
+  return best!;
+};
+
+export const solvedWorldState = async (monitor: Monitor, opts: Options) => {
+  const state = await balancedLayoutState(monitor, opts);
+  return pipeline(state)
     .apply(logicPassSolver)
     .apply(logicPassMinimize)
     .exec();

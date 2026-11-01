@@ -15,3 +15,4 @@ export * from './helpers';
 export * from './hints';
 export * from './misc';
 export * from './pipeline';
+export * from './balance';

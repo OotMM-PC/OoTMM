@@ -73,6 +73,14 @@ export const SETTINGS = [{
   cond: (x: any) => x.mode === 'multi',
   default: true
 }, {
+  key: 'startingChecksBalance',
+  name: 'Balance Starting Checks',
+  category: 'main',
+  type: 'boolean',
+  description: 'For multiworld with distinct worlds, rerolls world layouts (entrances, MQ, ...) until every player can reach a similar number of checks from the start, so nobody begins with nothing to do.',
+  cond: (x: any) => x.mode === 'multi' && x.distinctWorlds,
+  default: false
+}, {
   key: 'goal',
   name: 'Goal',
   category: 'main',
