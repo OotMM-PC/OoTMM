@@ -13,7 +13,7 @@ import { logicPassCloak, logicPassEntrances, logicPassMinimize, logicPassSolver 
 import { logicPassAnalysis, logicPassAnalysisFoolish, logicPassAnalysisPaths } from './analysis';
 import { logicPassHints } from './hints';
 import { logicPassPrice } from './price';
-import { STARTING_CHECK_BALANCE_ATTEMPTS, isBetterStartingLayout, startingCheckCounts, wantsStartingCheckBalance } from './balance';
+import { STARTING_CHECK_BALANCE_ATTEMPTS, STARTING_CHECK_BALANCE_TARGET, isBetterStartingLayout, startingCheckBalance, startingCheckCounts, wantsStartingCheckBalance } from './balance';
 
 type LogicPassFunc<State, Out> = (state: State) => Out;
 
@@ -89,6 +89,9 @@ const balancedLayoutState = async (monitor: Monitor, opts: Options) => {
     if (isBetterStartingLayout(counts, bestCounts)) {
       best = state;
       bestCounts = counts;
+    }
+    if (startingCheckBalance(counts) >= STARTING_CHECK_BALANCE_TARGET) {
+      break;
     }
   }
   return best!;
