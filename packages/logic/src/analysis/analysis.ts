@@ -63,6 +63,19 @@ class LogicPassAnalysis {
     return newWorlds;
   }
 
+  private entriesRestrictions(entries: SphereEntry[]) {
+    const restrictedLocations = new Set<Location>();
+    const forbiddenEvents = this.state.worlds.map(() => new Set(ANALYSIS_EVENTS.keys()));
+    for (const entry of entries) {
+      if (entry.type === 'location') {
+        restrictedLocations.add(entry.location);
+      } else {
+        forbiddenEvents[entry.playerId].delete(entry.event);
+      }
+    }
+    return { restrictedLocations, forbiddenEvents };
+  }
+
   private makeSpheresRaw(entries?: SphereEntry[]) {
     let worlds: World[];
     let pathfinder: Pathfinder;
@@ -116,9 +129,7 @@ class LogicPassAnalysis {
       this.state.monitor.setProgress(count++, entriesCopy.length);
       const entriesIndex = entries.indexOf(e);
       entries.splice(entriesIndex, 1);
-      const worlds = this.worldFromEntries(this.state.worlds, entries);
-      const pathfinder = new Pathfinder(worlds, this.state.settings, this.state.startingItems);
-      const pathfinderState = pathfinder.run(null, { recursive: true, items: this.state.items, stopAtGoal: true });
+      const pathfinderState = this.pathfinder.run(null, { recursive: true, items: this.state.items, stopAtGoal: true, ...this.entriesRestrictions(entries) });
       if (!pathfinderState.goal) {
         entries.push(e);
       }

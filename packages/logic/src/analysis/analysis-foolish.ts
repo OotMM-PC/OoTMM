@@ -5,7 +5,7 @@ import type { ItemPlacement, Location } from '../types';
 import type { ItemProperties } from '../item-properties';
 import type { Analysis } from './types';
 
-import { Monitor, Random, sample, ItemHelpers } from '@ootmm/core';
+import { Monitor, Random, randomInt, sample, ItemHelpers } from '@ootmm/core';
 import { isLocationRenewable, locationData, makeLocation } from '../locations';
 import { Pathfinder } from '../pathfind';
 
@@ -51,32 +51,76 @@ class LogicPassAnalysisFoolish {
     }
   }
 
-  private monteCarloZigZagDown(zz: ZigZagState) {
-    const locations = new Set(zz.allowed);
-    let allowed = new Set(zz.allowed);
-    const forbidden = new Set(zz.forbidden);
-    let lastBanished: Location | null = null;
+  private sampleOrder(locations: Set<Location>) {
+    const pool = [...locations];
+    const order: Location[] = [];
+    while (pool.length > 0) {
+      const index = randomInt(this.state.random, pool.length);
+      order.push(pool[index]);
+      pool.splice(index, 1);
+    }
+    return order;
+  }
 
-    for (;;) {
-      if (locations.size === 0) {
-        break;
-      }
-      const loc = sample(this.state.random, locations);
-      allowed.delete(loc);
-      locations.delete(loc);
+  private goalWithoutBatch(batch: Location[], forbidden: Set<Location>) {
+    for (const loc of batch) {
       forbidden.add(loc);
-      const pathfinderState = this.pathfinder.run(null, { recursive: true, items: this.state.items, forbiddenLocations: forbidden, stopAtGoal: true });
-      if (!pathfinderState.goal) {
-        if (!this.conditionallyRequiredLocations.has(loc)) {
-          this.markAsSometimesRequired(loc);
-          lastBanished = loc;
-        }
-        allowed.add(loc);
+    }
+    const pathfinderState = this.pathfinder.run(null, { recursive: true, items: this.state.items, forbiddenLocations: forbidden, stopAtGoal: true });
+    if (!pathfinderState.goal) {
+      for (const loc of batch) {
         forbidden.delete(loc);
       }
     }
+    return pathfinderState.goal;
+  }
 
-    if (!lastBanished) return null;
+  private forbidBatch(batch: Location[], forbidden: Set<Location>, onRequired: (loc: Location) => void, knownRequired = false): boolean {
+    if (!knownRequired && this.goalWithoutBatch(batch, forbidden)) {
+      return true;
+    }
+    if (batch.length === 1) {
+      onRequired(batch[0]);
+      return false;
+    }
+    const middle = batch.length >> 1;
+    const firstForbidden = this.forbidBatch(batch.slice(0, middle), forbidden, onRequired);
+    this.forbidBatch(batch.slice(middle), forbidden, onRequired, firstForbidden);
+    return false;
+  }
+
+  private monteCarloZigZagDown(zz: ZigZagState) {
+    const order = this.sampleOrder(zz.allowed);
+    const allowed = new Set<Location>();
+    const forbidden = new Set(zz.forbidden);
+    const banished: Location[] = [];
+    const onRequired = (loc: Location) => {
+      if (!this.conditionallyRequiredLocations.has(loc)) {
+        this.markAsSometimesRequired(loc);
+        banished.push(loc);
+      }
+      allowed.add(loc);
+    };
+
+    let pending: Location[] = [];
+    const flush = () => {
+      if (pending.length > 0) {
+        this.forbidBatch(pending, forbidden, onRequired);
+        pending = [];
+      }
+    };
+    for (const loc of order) {
+      if (this.conditionallyRequiredLocations.has(loc)) {
+        flush();
+        this.forbidBatch([loc], forbidden, onRequired);
+      } else {
+        pending.push(loc);
+      }
+    }
+    flush();
+
+    if (banished.length === 0) return null;
+    const lastBanished = banished[banished.length - 1];
 
     /* Re-forbid the last banished loc and merge allowed */
     forbidden.add(lastBanished);

@@ -64,6 +64,7 @@ type PathfinderWorldState = {
   newEvents: Set<string>;
   restrictedLocations?: Set<string>;
   forbiddenLocations?: Set<string>;
+  forbiddenEvents?: Set<string>;
 }
 
 export type PathfinderState = {
@@ -185,6 +186,7 @@ type PathfinderOptions = {
   stopAtGoal?: boolean;
   restrictedLocations?: Set<Location>;
   forbiddenLocations?: Set<Location>;
+  forbiddenEvents?: Set<string>[];
   includeForbiddenReachable?: boolean;
   gossips?: boolean;
   inPlace?: boolean;
@@ -236,6 +238,10 @@ export class Pathfinder {
       for (let world = 0; world < this.worlds.length; ++world) {
         this.state.ws[world].forbiddenLocations = undefined;
       }
+    }
+
+    for (let world = 0; world < this.worlds.length; ++world) {
+      this.state.ws[world].forbiddenEvents = this.opts.forbiddenEvents?.[world];
     }
 
     /* Handle no logic */
@@ -363,6 +369,9 @@ export class Pathfinder {
 
     /* Eval events */
     for (const e of Object.keys(worldArea.events)) {
+      if (ws.forbiddenEvents && ws.forbiddenEvents.has(e)) {
+        continue;
+      }
       this.evalEvent(worldId, age, area, e);
     }
 
