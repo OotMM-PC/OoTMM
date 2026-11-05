@@ -59,6 +59,9 @@ type PcSeedCosmetics = {
   gerudoTunic: boolean;
   musicCategories: boolean;
   musicNames: boolean;
+  defaultHold: boolean;
+  nightBgm: boolean;
+  noLowHealthBeep: boolean;
 };
 
 type PcSeedDungeonEntrance = {
@@ -599,6 +602,9 @@ export function makePcSeedArtifact(logic: LogicResult, opts: Options, worldId: n
       gerudoTunic: opts.cosmetics.gerudoTunic,
       musicCategories: opts.cosmetics.musicCategories,
       musicNames: opts.cosmetics.musicNames,
+      defaultHold: opts.cosmetics.defaultHold,
+      nightBgm: opts.cosmetics.nightBgm,
+      noLowHealthBeep: opts.cosmetics.noLowHealthBeep,
     },
     worldFlags: makeWorldFlags(logic, worldId),
     preCompletedDungeons: [...logic.worlds[worldId].preCompleted].sort(),
