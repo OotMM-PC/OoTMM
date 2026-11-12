@@ -53,6 +53,38 @@ function resolveColor(random: Random, c: ColorArg, auto?: () => number | null): 
   }
 }
 
+export type CosmeticColors = {
+  ootTunicKokiri: number | null;
+  ootTunicGoron: number | null;
+  ootTunicZora: number | null;
+  mmTunicHuman: number | null;
+  mmTunicDeku: number | null;
+  mmTunicGoron: number | null;
+  mmTunicZora: number | null;
+  mmTunicFierceDeity: number | null;
+  ootShieldMirror: number | null;
+  dpad: number | null;
+  fileSelect: number | null;
+};
+
+export function resolveCosmeticColors(random: Random, c: Options['cosmetics']): CosmeticColors {
+  const ootTunicKokiri = resolveColor(random, c.ootTunicKokiri);
+  const ootTunicGoron = resolveColor(random, c.ootTunicGoron);
+  const ootTunicZora = resolveColor(random, c.ootTunicZora);
+  const mmTunicHuman = resolveColor(random, c.mmTunicHuman, () => ootTunicKokiri);
+  const mmTunicDeku = resolveColor(random, c.mmTunicDeku, () => mmTunicHuman);
+  const mmTunicGoron = resolveColor(random, c.mmTunicGoron, () => mmTunicHuman);
+  const mmTunicZora = resolveColor(random, c.mmTunicZora, () => mmTunicHuman);
+  const mmTunicFierceDeity = resolveColor(random, c.mmTunicFierceDeity);
+  const ootShieldMirror = resolveColor(random, c.ootShieldMirror);
+  const dpad = resolveColor(random, c.dpad);
+  const fileSelect = resolveColor(random, c.fileSelect);
+  return {
+    ootTunicKokiri, ootTunicGoron, ootTunicZora, mmTunicHuman, mmTunicDeku, mmTunicGoron, mmTunicZora,
+    mmTunicFierceDeity, ootShieldMirror, dpad, fileSelect,
+  };
+}
+
 class CosmeticsPass {
   private assetsPromise: Promise<Assets> | null;
   private logWriter: LogWriter;
@@ -358,17 +390,18 @@ class CosmeticsPass {
     await random.seed(randString());
 
     /* Resolve colors */
-    const colorOotTunicKokiri = resolveColor(random, c.ootTunicKokiri);
-    const colorOotTunicGoron = resolveColor(random, c.ootTunicGoron);
-    const colorOotTunicZora = resolveColor(random, c.ootTunicZora);
-    const colorMmTunicHuman = resolveColor(random, c.mmTunicHuman, () => colorOotTunicKokiri);
-    const colorMmTunicDeku = resolveColor(random, c.mmTunicDeku, () => colorMmTunicHuman);
-    const colorMmTunicGoron = resolveColor(random, c.mmTunicGoron, () => colorMmTunicHuman);
-    const colorMmTunicZora = resolveColor(random, c.mmTunicZora, () => colorMmTunicHuman);
-    const colorMmTunicFierceDeity = resolveColor(random, c.mmTunicFierceDeity);
-    const colorOotShieldMirror = resolveColor(random, c.ootShieldMirror);
-    const colorDpad = resolveColor(random, c.dpad);
-    const colorFileSelect = resolveColor(random, c.fileSelect);
+    const colors = resolveCosmeticColors(random, c);
+    const colorOotTunicKokiri = colors.ootTunicKokiri;
+    const colorOotTunicGoron = colors.ootTunicGoron;
+    const colorOotTunicZora = colors.ootTunicZora;
+    const colorMmTunicHuman = colors.mmTunicHuman;
+    const colorMmTunicDeku = colors.mmTunicDeku;
+    const colorMmTunicGoron = colors.mmTunicGoron;
+    const colorMmTunicZora = colors.mmTunicZora;
+    const colorMmTunicFierceDeity = colors.mmTunicFierceDeity;
+    const colorOotShieldMirror = colors.ootShieldMirror;
+    const colorDpad = colors.dpad;
+    const colorFileSelect = colors.fileSelect;
 
     /* Patch hold target */
     if (c.defaultHold) {

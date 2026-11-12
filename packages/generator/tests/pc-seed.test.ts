@@ -15,6 +15,11 @@ describe('pc seed v31 settings', () => {
         gerudoTunic: true,
         musicCategories: false,
         musicNames: false,
+        defaultHold: true,
+        ootTunicGoron: 'zorablue',
+        mmTunicHuman: 'auto',
+        mmTunicDeku: 'auto',
+        ootTunicKokiri: 'goronred',
       },
       settings: {
         songs: 'anywhere',
@@ -89,6 +94,16 @@ describe('pc seed v31 settings', () => {
       gerudoTunic: true,
       musicCategories: false,
       musicNames: false,
+      defaultHold: true,
+      nightBgm: false,
+      noLowHealthBeep: false,
+      applyFreestandings: true,
+      colors: {
+        ootTunicKokiri: '#641400',
+        ootTunicGoron: '#003c64',
+        mmTunicHuman: '#641400',
+        mmTunicDeku: '#641400',
+      },
     });
     for (const setting of SETTINGS) {
       expect(artifact.settings).toHaveProperty(setting.key);

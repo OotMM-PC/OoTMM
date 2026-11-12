@@ -8,12 +8,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import YAML from 'yaml';
 
-import { importSettings, Monitor, options } from '@ootmm/core';
+import { importSettings, Monitor, options, Random, randString } from '@ootmm/core';
 import { logic } from '@ootmm/logic';
 
 // Import combo modules directly, NOT from ./combo's index: the index re-exports generator.ts, which pulls in the ROM patch/native tooling we avoid.
 import { PRESETS } from './combo/presets';
 import { makePcSeedArtifact } from './combo/pc-seed';
+import { resolveCosmeticColors } from './combo/cosmetics';
 import { parsePcSeedSettingsPatch } from './combo/pc-seed-settings';
 import { prepareRandomSettings } from './combo/random-settings';
 import { makeSeedName, seedFileStem } from './combo/seed-name';
@@ -122,10 +123,13 @@ const main = async () => {
   const teamIds = Array.from({ length: teams }, () =>
     teams === 1 ? '00'.repeat(16) : Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('hex'));
 
+  const colorRandom = new Random();
+  await colorRandom.seed(randString());
+  const colors = resolveCosmeticColors(colorRandom, opts.cosmetics);
   const written: string[] = [];
   for (let i = 0; i < players; i++) {
     for (let team = 0; team < teams; team++) {
-      const pcSeed = makePcSeedArtifact(logicResult, opts, i, teamIds[team]);
+      const pcSeed = makePcSeedArtifact(logicResult, opts, i, teamIds[team], colors);
       const player = players === 1 ? '' : `-Player${i + 1}`;
       const teamSuffix = teams === 1 ? '' : `-Team${team + 1}`;
       const name = `${stem}${player}${teamSuffix}.ootmm.json`;

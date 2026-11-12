@@ -1,11 +1,12 @@
 import type { Options, OptionsInput, MonitorCallbacks } from '@ootmm/core';
 import type { LogicResult } from '@ootmm/logic';
 
-import { Monitor, options } from '@ootmm/core';
+import { Monitor, options, Random, randString } from '@ootmm/core';
 import { logic } from '@ootmm/logic';
 import { codegen } from './codegen';
 import { custom } from './custom';
 import { makePcSeedArtifact } from './pc-seed';
+import { resolveCosmeticColors } from './cosmetics';
 import { prepareRandomSettings } from './random-settings';
 import { decompressGames } from './decompress';
 import { pack } from './pack';
@@ -154,10 +155,13 @@ export class Generator {
 
     /* Build PC seed(s): the .ootmm.json artifact the PC ports load. Patch mode has no logic result, so none is derived there. */
     if (pcSeedLogic) {
+      const colorRandom = new Random();
+      await colorRandom.seed(randString());
+      const colors = resolveCosmeticColors(colorRandom, this.opts.cosmetics);
       for (let i = 0; i < patchfiles.length; i++) {
         for (let team = 0; team < this.opts.settings.teams; ++team) {
           const teamId = Array.from(teamsUuids[team]).map(b => b.toString(16).padStart(2, '0')).join('');
-          const data = makePcSeedArtifact(pcSeedLogic, this.opts, i, teamId);
+          const data = makePcSeedArtifact(pcSeedLogic, this.opts, i, teamId, colors);
           files.push(makeFile({ name: makeSeedName(this.opts.seed, pcSeedLogic.hash).slug, hash: hashFileName, data, mime: 'application/json', world: playerNumber(i), team: teamNumber(team), ext: 'ootmm.json' }));
         }
       }
