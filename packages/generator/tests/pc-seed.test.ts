@@ -143,6 +143,9 @@ describe('pc seed v31 settings', () => {
     expect(skullReward?.checkNativeId).toBe('OOT_GS_100');
     expect(artifact.placements.some((placement: any) => placement.itemId.startsWith('OOT_RUSTY_KEY_'))).toBe(true);
     expect(artifact.placements.some((placement: any) => placement.itemId.startsWith('MM_RUSTY_KEY_'))).toBe(true);
+    expect(artifact.placements.every((placement: any) => typeof placement.woth === 'boolean')).toBe(true);
+    expect(artifact.placements.some((placement: any) => placement.woth)).toBe(true);
+    expect(artifact.placements.some((placement: any) => !placement.woth)).toBe(true);
   }, 120_000);
 
   it('rejects removed v30 settings and normalizes v31 set settings', () => {

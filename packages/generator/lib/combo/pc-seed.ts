@@ -37,6 +37,7 @@ type PcSeedPlacement = {
   ownerPlayer: number;
   sourcePlayer: number;
   major: boolean;
+  woth: boolean;
 };
 
 type PcSeedEntrance = {
@@ -299,6 +300,7 @@ function makePlacements(logic: LogicResult, worldId: number, settings: Settings)
       ownerPlayer: item.ownerPlayer,
       sourcePlayer: worldId + 1,
       major: ItemHelpers.isItemMajor(playerItem.item),
+      woth: logic.analysis.required.has(location),
     });
   }
 
