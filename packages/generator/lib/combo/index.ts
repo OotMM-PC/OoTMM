@@ -4,6 +4,7 @@ export type { Cosmetics, OptionRandomSettings, OptionsInput, Options } from '@oo
 export type { Presets } from './presets';
 export type { GeneratorOutput, GeneratorParams } from './generator';
 export type { Items } from './item-pool';
+export type { PcSeedColorKey, PcSeedCosmeticsFile } from './pc-seed-cosmetics';
 
 export { COLORS, makeRandomSettings, COSMETICS, makeCosmetics, SETTINGS_DEFAULT_HINTS, HINT_TYPES, SETTINGS, TRICKS, SPECIAL_CONDS, SPECIAL_CONDS_FIELDS, makeSettings, mergeSettings, exportSettings, importSettings, DEFAULT_SETTINGS, SUBCATEGORIES } from '@ootmm/core';
 
@@ -12,3 +13,4 @@ export { locationList } from './location-list';
 export { generate } from './generator';
 export { itemPool } from './item-pool';
 export { itemName } from './names';
+export { readPcSeedCosmetics, editPcSeedCosmetics } from './pc-seed-cosmetics';

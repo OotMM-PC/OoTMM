@@ -12,6 +12,7 @@ export type Options = {
   seed: string;
   settings: Settings;
   cosmetics: Cosmetics;
+  playerCosmetics: (Cosmetics | null)[];
   random: OptionRandomSettings;
   patch?: Uint8Array;
 };
@@ -21,6 +22,7 @@ export type OptionsInput =
     Pick<Options, 'mode' | 'seed' | 'patch'>
     & { settings: Partial<Settings> }
     & { cosmetics: Partial<Cosmetics> }
+    & { playerCosmetics: (Partial<Cosmetics> | null)[] }
     & { random: Partial<OptionRandomSettings> }
   >;
 
@@ -38,6 +40,7 @@ export const options = (opts: OptionsInput): Options => {
 
   newOpts.settings = makeSettings(opts.settings || {});
   newOpts.cosmetics = makeCosmetics(opts.cosmetics || {});
+  newOpts.playerCosmetics = (opts.playerCosmetics || []).map(c => c ? makeCosmetics(c) : null);
   newOpts.random = makeRandomSettings(opts.random || {});
 
   return newOpts as Options;

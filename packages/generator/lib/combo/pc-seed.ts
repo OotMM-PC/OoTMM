@@ -12,11 +12,8 @@ import { makePcSeedLogic } from './pc-seed-logic';
 import { prepareRandomSettings } from './random-settings';
 import { RandomizerPatcherStartingItems } from './randomizer/starting-items';
 import { makeSeedName } from './seed-name';
-import type { CosmeticColors } from './cosmetics';
-import { resolveCosmeticColors } from './cosmetics';
-
-const FORMAT = 'ootmm.pc.seed.v2';
-const GENERATOR_VERSION = '31.1';
+import type { PcSeedCosmetics } from './pc-seed-cosmetics';
+import { PC_SEED_FORMAT as FORMAT, PC_SEED_GENERATOR_VERSION as GENERATOR_VERSION, playerPcSeedCosmetics } from './pc-seed-cosmetics';
 
 type PcSeedPlacement = {
   checkGame: Game;
@@ -57,17 +54,6 @@ type PcSeedStartingItem = {
 };
 
 type PcSeedWorldFlags = { [flag: string]: 'all' | 'none' | string[] };
-
-type PcSeedCosmetics = {
-  gerudoTunic: boolean;
-  musicCategories: boolean;
-  musicNames: boolean;
-  defaultHold: boolean;
-  nightBgm: boolean;
-  noLowHealthBeep: boolean;
-  applyFreestandings: boolean;
-  colors: { [key: string]: string };
-};
 
 type PcSeedDungeonEntrance = {
   source: string;
@@ -593,17 +579,7 @@ function makeDungeonEntrances(logic: LogicResult, worldId: number): PcSeedDungeo
   });
 }
 
-function pcSeedColors(colors: CosmeticColors): { [key: string]: string } {
-  const out: { [key: string]: string } = {};
-  for (const [key, value] of Object.entries(colors)) {
-    if (value !== null) {
-      out[key] = '#' + value.toString(16).padStart(6, '0');
-    }
-  }
-  return out;
-}
-
-export function makePcSeedArtifact(logic: LogicResult, opts: Options, worldId: number, teamId: string, colors: CosmeticColors): string {
+export function makePcSeedArtifact(logic: LogicResult, opts: Options, worldId: number, teamId: string, cosmetics: PcSeedCosmetics): string {
   const artifact: PcSeedArtifact = {
     format: FORMAT,
     generatorVersion: GENERATOR_VERSION,
@@ -614,16 +590,7 @@ export function makePcSeedArtifact(logic: LogicResult, opts: Options, worldId: n
     playerCount: opts.settings.players,
     teamId,
     settings: opts.settings,
-    cosmetics: {
-      gerudoTunic: opts.cosmetics.gerudoTunic,
-      musicCategories: opts.cosmetics.musicCategories,
-      musicNames: opts.cosmetics.musicNames,
-      defaultHold: opts.cosmetics.defaultHold,
-      nightBgm: opts.cosmetics.nightBgm,
-      noLowHealthBeep: opts.cosmetics.noLowHealthBeep,
-      applyFreestandings: opts.cosmetics.applyFreestandings,
-      colors: pcSeedColors(colors),
-    },
+    cosmetics,
     worldFlags: makeWorldFlags(logic, worldId),
     preCompletedDungeons: [...logic.worlds[worldId].preCompleted].sort(),
     startingGame: startingGame(opts),
@@ -655,5 +622,5 @@ export async function generatePcSeed(input: OptionsInput, onLog?: (msg: string) 
   const teamId = '00'.repeat(16);
   const random = new Random();
   await random.seed(randString());
-  return makePcSeedArtifact(result, opts, 0, teamId, resolveCosmeticColors(random, opts.cosmetics));
+  return makePcSeedArtifact(result, opts, 0, teamId, playerPcSeedCosmetics(random, opts)[0]);
 }

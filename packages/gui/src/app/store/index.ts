@@ -55,6 +55,10 @@ function onSettingsUpdate() {
   });
 }
 
+function onPlayerCosmeticsUpdate() {
+  localStoragePrefixedSet('playerCosmetics', useStore.getState().playerCosmetics);
+}
+
 function onRandomSettingsUpdate() {
   localStoragePrefixedSet('randomSettings', useStore.getState().randomSettings);
 }
@@ -89,6 +93,9 @@ useStore.subscribe((state, prevState) => {
   }
   if (state.cosmetics !== prevState.cosmetics) {
     onCosmeticsUpdate(prevState.cosmetics, state.cosmetics);
+  }
+  if (state.playerCosmetics !== prevState.playerCosmetics) {
+    onPlayerCosmeticsUpdate();
   }
 });
 

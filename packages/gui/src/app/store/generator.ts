@@ -36,7 +36,8 @@ export const createGeneratorSlice: StateCreator<Store, [], [], GeneratorSlice> =
     if (config.mode !== 'patch') {
       patch = null;
     }
-    const options: OptionsInput = { mode: config.mode, seed: config.seed, settings: state.settings, random: state.randomSettings, cosmetics: state.cosmetics };
+    const playerCosmetics = state.settings.mode === 'multi' && state.settings.teams === 1 ? state.playerCosmetics.slice(0, state.settings.players) : [];
+    const options: OptionsInput = { mode: config.mode, seed: config.seed, settings: state.settings, random: state.randomSettings, cosmetics: state.cosmetics, playerCosmetics };
     try {
       const onMessage = (message: string) => {
         console.log(message);

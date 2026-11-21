@@ -6,7 +6,7 @@ import { logic } from '@ootmm/logic';
 import { codegen } from './codegen';
 import { custom } from './custom';
 import { makePcSeedArtifact } from './pc-seed';
-import { resolveCosmeticColors } from './cosmetics';
+import { playerPcSeedCosmetics } from './pc-seed-cosmetics';
 import { prepareRandomSettings } from './random-settings';
 import { decompressGames } from './decompress';
 import { pack } from './pack';
@@ -157,11 +157,11 @@ export class Generator {
     if (pcSeedLogic) {
       const colorRandom = new Random();
       await colorRandom.seed(randString());
-      const colors = resolveCosmeticColors(colorRandom, this.opts.cosmetics);
+      const cosmetics = playerPcSeedCosmetics(colorRandom, this.opts);
       for (let i = 0; i < patchfiles.length; i++) {
         for (let team = 0; team < this.opts.settings.teams; ++team) {
           const teamId = Array.from(teamsUuids[team]).map(b => b.toString(16).padStart(2, '0')).join('');
-          const data = makePcSeedArtifact(pcSeedLogic, this.opts, i, teamId, colors);
+          const data = makePcSeedArtifact(pcSeedLogic, this.opts, i, teamId, cosmetics[i]);
           files.push(makeFile({ name: makeSeedName(this.opts.seed, pcSeedLogic.hash).slug, hash: hashFileName, data, mime: 'application/json', world: playerNumber(i), team: teamNumber(team), ext: 'ootmm.json' }));
         }
       }

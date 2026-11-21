@@ -1,7 +1,7 @@
-import type { Items, Settings, OptionsInput, GeneratorOutput } from '@ootmm/generator';
+import type { Cosmetics, Items, Settings, OptionsInput, GeneratorOutput } from '@ootmm/generator';
 import type { WorkerResult, WorkerResultGenerate, WorkerResultGenerateError } from './worker';
 
-import { makeCosmetics, makeSettings, makeRandomSettings } from '@ootmm/generator';
+import { COSMETICS, makeCosmetics, makeSettings, makeRandomSettings } from '@ootmm/generator';
 import JSZip from 'jszip';
 import Worker from './worker?worker';
 import { localStoragePrefixedGet } from './util';
@@ -92,6 +92,21 @@ export function initialRandomSettings() {
 
 export function initialCosmetics() {
   return makeCosmetics(localStoragePrefixedGet('cosmetics'));
+}
+
+export function withoutCosmeticFiles(cosmetics: Cosmetics): Cosmetics {
+  const result = { ...cosmetics };
+  for (const c of COSMETICS) {
+    if (c.type === 'file') {
+      (result as any)[c.key] = null;
+    }
+  }
+  return result;
+}
+
+export function initialPlayerCosmetics(): (Cosmetics | null)[] {
+  const stored = localStoragePrefixedGet('playerCosmetics', []);
+  return Array.isArray(stored) ? stored.map(c => c ? withoutCosmeticFiles(makeCosmetics(c)) : null) : [];
 }
 
 export async function generate(files: { oot: File, mm: File, patch?: File }, options: OptionsInput, log: (msg: string) => void, progress: (current: number, total: number) => void) {
