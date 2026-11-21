@@ -1,6 +1,7 @@
 import type { IconType } from 'react-icons';
 
 import clsx from 'clsx';
+import { useMemo } from 'react';
 import { LuHammer, LuDices, LuFileDiff } from 'react-icons/lu';
 
 import { Setting, SettingsImportExport } from '@/app/components/settings';
@@ -48,6 +49,12 @@ export function GeneratorGeneral() {
   const randomSettings = useStore(state => state.randomSettings);
   const patchRandomSettings = useStore(state => state.patchRandomSettings);
   const settings = useStore(state => state.settings);
+  const locations = useStore(state => state.locations);
+  const checks = useMemo(() => {
+    const shuffled = new Set(locations);
+    return { perPlayer: locations.length, junked: settings.junkLocations.filter(x => shuffled.has(x)).length };
+  }, [locations, settings.junkLocations]);
+  const multiPlayers = settings.mode === 'multi' ? settings.players : 0;
 
   const isModeCreate = mode === 'create';
   const isModeRandom = mode === 'random';
@@ -85,6 +92,13 @@ export function GeneratorGeneral() {
             <PresetSelector />
             <SettingsImportExport />
             <InputField className={clsx(config.seed ? 'font-mono' : '')} type="text" label="Seed" placeholder="Leave blank to auto-generate" value={config.seed} onChange={setSeed}/>
+            {checks.perPlayer > 0 && (
+              <div className="text-center" title="Estimated from the current settings. Random Master Quest or JP layouts and distinct worlds can change the real count.">
+                About {checks.perPlayer.toLocaleString()} checks per player
+                {checks.junked > 0 && <span className="text-gray-500"> ({checks.junked.toLocaleString()} junked)</span>}
+                {multiPlayers > 0 && <span> &middot; about {(checks.perPlayer * multiPlayers).toLocaleString()} across {multiPlayers} players</span>}
+              </div>
+            )}
           </>}
 
           {isModeRandom && (

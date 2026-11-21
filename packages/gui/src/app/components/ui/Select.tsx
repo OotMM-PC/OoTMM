@@ -17,12 +17,14 @@ type SelectProps<T> = {
   creatable?: boolean;
   searcheable?: boolean;
   multi?: boolean;
+  stayOpen?: boolean;
+  selectMany?: { label: (count: number) => string; onSelect: (values: T[]) => void };
   onSelect: (value: T) => void;
   onUnselect?: (value: T) => void;
   onClear?: () => void;
   onCreate?: (label: string) => void;
 }
-export function Select<T>({ id, options, value, placeholder, clearable, creatable, searcheable, multi, onSelect, onUnselect, onClear, onCreate }: SelectProps<T>) {
+export function Select<T>({ id, options, value, placeholder, clearable, creatable, searcheable, multi, stayOpen, selectMany, onSelect, onUnselect, onClear, onCreate }: SelectProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -31,6 +33,11 @@ export function Select<T>({ id, options, value, placeholder, clearable, creatabl
   const currentLabel = options.find(opt => opt.value === value)?.label ?? '';
 
   const onInputKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && stayOpen) {
+      setOpen(false);
+      setInputValue('');
+      inputRef.current?.blur();
+    }
     if (e.key === 'Enter' && inputValue.trim() && creatable) {
       e.preventDefault();
       if (onCreate) {
@@ -105,9 +112,14 @@ export function Select<T>({ id, options, value, placeholder, clearable, creatabl
         </div>
       </div>
       <div className="relative select-none">
-        {open && (searcheable || !inputValue) && <div className="ux-bg ux-border z-50 absolute top-1 dark:bg-gray-600 rounded border dark:border-gray-500 w-full max-h-[300px] overflow-y-auto">
+        {open && (searcheable || !inputValue) && <div className="ux-bg ux-border z-50 absolute top-1 dark:bg-gray-600 rounded border dark:border-gray-500 w-full max-h-[300px] overflow-y-auto" onMouseDown={stayOpen ? (e) => e.preventDefault() : undefined}>
+          {selectMany && inputValue.trim() && filteredOptions.length > 0 && (
+            <div className="ux-hover p-2 font-semibold border-b dark:border-gray-500" onClick={(e) => { if (!stayOpen) { setOpen(false); setInputValue(''); } selectMany.onSelect(filteredOptions.map(opt => opt.value)); e.preventDefault(); e.stopPropagation(); }}>
+              {selectMany.label(filteredOptions.length)}
+            </div>
+          )}
           {filteredOptions.length > 0 && filteredOptions.map((opt, i) =>
-            <div key={i} className="ux-hover p-2" onClick={(e) => { setOpen(false); onSelect(opt.value); e.preventDefault(); e.stopPropagation(); setInputValue(''); }}>
+            <div key={i} className="ux-hover p-2" onClick={(e) => { if (!stayOpen) { setOpen(false); setInputValue(''); } onSelect(opt.value); e.preventDefault(); e.stopPropagation(); }}>
               {opt.label}
             </div>
           )}
